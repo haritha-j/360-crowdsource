@@ -14,12 +14,14 @@ import android.os.Bundle;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import android.os.Environment;
 import android.os.Handler;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
@@ -33,10 +35,12 @@ import android.widget.TextView;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
 import android.media.MediaRecorder;
+import android.widget.Toast;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -51,7 +55,9 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String LOG_TAG = "AudioRecordTest";
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
-    private static String fileName = null;
+    private static String fileNameFb = null;
+    private static String fileNameYt = null;
+
 
     //private RecordButton recordButton = null;
     private MediaRecorder recorder = null;
@@ -69,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    //permission check
+    //permission check for storage
     public void checkPermission(Activity activity, String permission, int permissionInt) {
         // Here, thisActivity is the current activity
         if (ContextCompat.checkSelfPermission(activity,
@@ -90,6 +96,22 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    //get audio permission
+    boolean permissionToRecordAccepted = false;
+    String [] permissions = {Manifest.permission.RECORD_AUDIO};
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode){
+            case REQUEST_RECORD_AUDIO_PERMISSION:
+                permissionToRecordAccepted  = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                break;
+        }
+        if (!permissionToRecordAccepted ) finish();
+
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -97,20 +119,37 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        //get permissions
+        //get storage permissions
         checkPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE, READ_STORAGE_PERMISSION_REQUEST_CODE);
         checkPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE, WRITE_STORAGE_PERMISSION_REQUEST_CODE);
+
+        //setup audio recording
+        fileNameFb = Environment.getExternalStorageDirectory().getAbsolutePath();
+        fileNameFb += "/audiofb.3gp";
+        fileNameYt = Environment.getExternalStorageDirectory().getAbsolutePath();
+        fileNameYt += "/audioyt.3gp";
+
+        ActivityCompat.requestPermissions(this, permissions, REQUEST_RECORD_AUDIO_PERMISSION);
 
         //submit data
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                stopRercordingFlag = true;
-                //TODO - finalize recording
-                new UploadFileAsync().execute("");
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                //stopRercordingFlag = true;
+                if (stopRercordingFlag) {
+                    stopRercordingFlag = false;
+                    onRecord(false, fileNameYt);
+                    //TODO - finalize recording data
+                    //upload data
+                    new UploadFileAsync().execute("");
+                    Snackbar.make(view, "Your contribution has been submitted. Thank you!", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                }
+                else{
+                    Toast.makeText(view.getContext(), "Please follow the steps in the correct order", Toast.LENGTH_SHORT).show();
+                }
+
             }
         });
 
@@ -125,9 +164,8 @@ public class MainActivity extends AppCompatActivity {
         final Button fbButton = findViewById(R.id.fb_button);
         fbButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
+
                 //log rx and tx data
-
-
                 mStartRX = TrafficStats.getTotalRxBytes();
                 mStartTX = TrafficStats.getTotalTxBytes();
 
@@ -137,6 +175,10 @@ public class MainActivity extends AppCompatActivity {
                     mHandler.postDelayed(mRunnable, 1000);
                 }
 
+               //start recording
+                stopRercordingFlag = true;
+                onRecord(true, fileNameFb);
+                Log.d(TAG, "started recording");
                 //open fb 360
                 String url = "https://www.facebook.com/AMD/videos/10154844546721473/";
                 //String url = "https://www.pscp.tv/w/1dRJZXXgXEwKB";
@@ -148,12 +190,12 @@ public class MainActivity extends AppCompatActivity {
 
         //youtube button
         //fb button
-        final Button youtubeButton = findViewById(R.id.fb_button);
+        final Button youtubeButton = findViewById(R.id.youtube_button);
         youtubeButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 //log rx and tx data
 
-                //TODO - finalize recording
+                //TODO - finalize recording data
                 mStartRX = TrafficStats.getTotalRxBytes();
                 mStartTX = TrafficStats.getTotalTxBytes();
 
@@ -163,12 +205,23 @@ public class MainActivity extends AppCompatActivity {
                     mHandler.postDelayed(mRunnable, 1000);
                 }
 
-                //open fb 360
-                String url = "https://www.facebook.com/Breitling/videos/510602576175759/UzpfSTE2Nzk5OTE4Mzg4ODU5NTE6MjU1OTk3NTI3MDg4NzU5OQ/";
-                //String url = "https://www.pscp.tv/w/1dRJZXXgXEwKB";
-                Intent i = new Intent(Intent.ACTION_VIEW);
-                i.setData(Uri.parse(url));
-                startActivity(i);
+                //stop previous recording instance
+                if (stopRercordingFlag) {
+                    onRecord(false, fileNameFb);
+                    Log.d(TAG, "started recording");
+                    //restart recording
+                    onRecord(true, fileNameYt);
+
+                    //open fb 360
+                    String url = "https://www.facebook.com/Breitling/videos/510602576175759/UzpfSTE2Nzk5OTE4Mzg4ODU5NTE6MjU1OTk3NTI3MDg4NzU5OQ/";
+                    //String url = "https://www.pscp.tv/w/1dRJZXXgXEwKB";
+                    Intent i = new Intent(Intent.ACTION_VIEW);
+                    i.setData(Uri.parse(url));
+                    startActivity(i);
+                }
+                else{
+                    Toast.makeText(v.getContext(), "Please follow the steps in the correct order", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -324,6 +377,37 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onProgressUpdate(Void... values) {
         }
+    }
+
+    //audio recording methods
+    private void onRecord(boolean start, String filename) {
+        if (start) {
+            startRecording(filename);
+        } else {
+            stopRecording();
+        }
+    }
+
+    private void startRecording(String fileName) {
+        recorder = new MediaRecorder();
+        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        recorder.setOutputFile(fileName);
+        recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+
+        try {
+            recorder.prepare();
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "prepare() failed");
+        }
+
+        recorder.start();
+    }
+
+    private void stopRecording() {
+        recorder.stop();
+        recorder.release();
+        recorder = null;
     }
 }
 
