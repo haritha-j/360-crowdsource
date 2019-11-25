@@ -28,6 +28,7 @@ import androidx.core.content.ContextCompat;
 
 import android.os.Environment;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
@@ -85,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
 
     private final Runnable mRunnable = new Runnable() {
         public void run() {
-            if (!stopRercordingFlag) {
+            if (stopRercordingFlag) {
                 Log.d(TAG, "running");
                 long rxBytes = TrafficStats.getTotalRxBytes() - mStartRX;
                 Log.d(TAG, "RX " + Long.toString(rxBytes));
@@ -97,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
                 catch (IOException e){
                     e.printStackTrace();
                 }
-                mHandler.postDelayed(mRunnable, 1000);
+                mHandler.postDelayed(mRunnable, 10000);
             }
         }
     };
@@ -201,7 +202,10 @@ public class MainActivity extends AppCompatActivity {
                     userIDText = userID.getText().toString();
 
                     //upload data
-                    new UploadFileAsync().execute("");
+                    new UploadFileAsync().execute(Environment.getExternalStorageDirectory().getPath()+"/audiofb.3gp", "_audiofb.3gp");
+                    new UploadFileAsync().execute(Environment.getExternalStorageDirectory().getPath()+"/audioyt.3gp", "_audioyt.3gp");
+                    new UploadFileAsync().execute(Environment.getExternalStorageDirectory().getPath()+"/trafficData.csv", "_trafficData.csv");
+                    new UploadFileAsync().execute(Environment.getExternalStorageDirectory().getPath()+"/gyroData.csv", "_gyroData.csv");
                     Snackbar.make(view, "Your contribution has been submitted. Thank you!", Snackbar.LENGTH_LONG)
                             .setAction("Action", null).show();
                 }
@@ -224,21 +228,34 @@ public class MainActivity extends AppCompatActivity {
         fbButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
 
-                //log rx and tx data
-                mStartRX = TrafficStats.getTotalRxBytes();
-                mStartTX = TrafficStats.getTotalTxBytes();
 
-                if (mStartRX == TrafficStats.UNSUPPORTED || mStartTX == TrafficStats.UNSUPPORTED) {
-                    Log.d(TAG, "logging unsupported");
-                } else {
-                    Log.d(TAG, "begin recording");
-                    mHandler.postDelayed(mRunnable, 1000);
-                }
 
                //start recording audio and gyro
                 if (!stopRercordingFlag) {
                     stopRercordingFlag = true;
+
+                    //log rx and tx data
+                    mStartRX = TrafficStats.getTotalRxBytes();
+                    mStartTX = TrafficStats.getTotalTxBytes();
+
+                    if (mStartRX == TrafficStats.UNSUPPORTED || mStartTX == TrafficStats.UNSUPPORTED) {
+                        Log.d(TAG, "logging unsupported");
+                    } else {
+                        Log.d(TAG, "begin recording");
+                        try {
+                            trafficWriter.write("facebook\n");
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        mHandler.postDelayed(mRunnable, 1000);
+                    }
+
                     onRecord(true, fileNameFb);
+                    try {
+                        gyroWriter.write("facebook\n");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     gyroReader.start();
                     Log.d(TAG, "started recording");
 
@@ -260,27 +277,40 @@ public class MainActivity extends AppCompatActivity {
         final Button youtubeButton = findViewById(R.id.youtube_button);
         youtubeButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                //log rx and tx data
 
-                //TODO - finalize recording data
-                mStartRX = TrafficStats.getTotalRxBytes();
-                mStartTX = TrafficStats.getTotalTxBytes();
-
-                if (mStartRX == TrafficStats.UNSUPPORTED || mStartTX == TrafficStats.UNSUPPORTED) {
-                    Log.d(TAG, "logging unsupported");
-                } else {
-                    mHandler.postDelayed(mRunnable, 1000);
-                }
 
                 //stop previous recording instance
                 if (stopRercordingFlag) {
+                    stopRercordingFlag = false;
                     gyroReader.stop();
                     onRecord(false, fileNameFb);
-                    Log.d(TAG, "started recording");
+                    Log.d(TAG, "stopped recording");
+                    SystemClock.sleep(500);
                     //restart recording
+                    stopRercordingFlag = true;
+                    try {
+                        gyroWriter.write("youtube\n");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     gyroReader.start();
                     onRecord(true, fileNameYt);
+                    //log rx and tx data
 
+                    //TODO - finalize recording data
+                    mStartRX = TrafficStats.getTotalRxBytes();
+                    mStartTX = TrafficStats.getTotalTxBytes();
+
+                    if (mStartRX == TrafficStats.UNSUPPORTED || mStartTX == TrafficStats.UNSUPPORTED) {
+                        Log.d(TAG, "logging unsupported");
+                    } else {
+                        try {
+                            trafficWriter.write("youtube\n");
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        mHandler.postDelayed(mRunnable, 1000);
+                    }
                     //open fb 360
                     String url = "https://www.facebook.com/Breitling/videos/510602576175759/UzpfSTE2Nzk5OTE4Mzg4ODU5NTE6MjU1OTk3NTI3MDg4NzU5OQ/";
                     //String url = "https://www.pscp.tv/w/1dRJZXXgXEwKB";
@@ -295,6 +325,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    //menu
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -339,7 +370,7 @@ public class MainActivity extends AppCompatActivity {
 
         public void start(){
             //request 10ms updates
-            sensorManager.registerListener(this, rotationSensor, 10000);
+            sensorManager.registerListener(this, rotationSensor, 100000);
         }
 
         public void stop(){
@@ -373,7 +404,8 @@ public class MainActivity extends AppCompatActivity {
         protected String doInBackground(String... params) {
 
             try {
-                String sourceFileUri = "/mnt/sdcard/abc.jpg";
+
+                String sourceFileUri = params[0];
                 int serverResponseCode = 0;
                 HttpURLConnection conn = null;
                 DataOutputStream dos = null;
@@ -388,7 +420,7 @@ public class MainActivity extends AppCompatActivity {
                 if (sourceFile.isFile()) {
 
                     try {
-                        String upLoadServerUri = "http://192.168.43.4:80/crowdsource/index.php?";
+                        String upLoadServerUri = "http://10.17.76.28:80/crowdsource/index.php?";
 
                         Log.d(TAG, "user id "+userIDText);
                         // open a URL connection to the Servlet
@@ -408,13 +440,13 @@ public class MainActivity extends AppCompatActivity {
                                 "multipart/form-data");
                         conn.setRequestProperty("Content-Type",
                                 "multipart/form-data;boundary=" + boundary);
-                        conn.setRequestProperty("bill", sourceFileUri);
-                        conn.setRequestProperty("userid", userIDText);
-
+                        //conn.setRequestProperty("bill", sourceFileUri);
+                        //conn.setRequestProperty("userid", userIDText);
+                        Log.d(TAG, "source file uri "+sourceFileUri);
                         dos = new DataOutputStream(conn.getOutputStream());
                         dos.writeBytes(twoHyphens + boundary + lineEnd);
-                        dos.writeBytes("Content-Disposition: form-data; name=\"bill\";filename=\""
-                                + sourceFileUri + "\"" + lineEnd);
+                        dos.writeBytes("Content-Disposition: form-data; name=\"abd\";filename=\""
+                                + userIDText+ params[1] + "\"" + lineEnd);
 
                         dos.writeBytes(lineEnd);
 
