@@ -22,4 +22,22 @@
 
         android:text="youtube 360" />
 
+    <TextView
+        android:id="@+id/idLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Enter your user ID:"
+        app:layout_constraintTop_toBottomOf="@id/youtube_button"
+    />
+
+    <EditText
+        android:id="@+id/userID"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/idLabel">
+
+        <requestFocus />
+
+    </EditText>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

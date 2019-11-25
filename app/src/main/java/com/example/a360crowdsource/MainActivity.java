@@ -5,11 +5,16 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.net.TrafficStats;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -30,12 +35,15 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -57,23 +65,45 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
     private static String fileNameFb = null;
     private static String fileNameYt = null;
-
+    private EditText userID;
+    private String userIDText;
 
     //private RecordButton recordButton = null;
     private MediaRecorder recorder = null;
+
+    private SensorManager sensorManager;
+    private Sensor sensor;
+    GyroReader gyroReader;
+
+    //setup csv file for logging data
+    FileWriter trafficWriter;
+    FileWriter gyroWriter;
+    File root = Environment.getExternalStorageDirectory();
+    File trafficDatafile = new File(root, "trafficData.csv");
+    File gyroDatafile = new File(root, "gyroData.csv");
 
 
     private final Runnable mRunnable = new Runnable() {
         public void run() {
             if (!stopRercordingFlag) {
+                Log.d(TAG, "running");
                 long rxBytes = TrafficStats.getTotalRxBytes() - mStartRX;
                 Log.d(TAG, "RX " + Long.toString(rxBytes));
                 long txBytes = TrafficStats.getTotalTxBytes() - mStartTX;
                 Log.d(TAG, "TX " + Long.toString(txBytes));
+                try{
+                    writeTrafficStatsToCsv(rxBytes, txBytes, trafficWriter);
+                }
+                catch (IOException e){
+                    e.printStackTrace();
+                }
                 mHandler.postDelayed(mRunnable, 1000);
             }
         }
     };
+
+    public MainActivity() {
+    }
 
     //permission check for storage
     public void checkPermission(Activity activity, String permission, int permissionInt) {
@@ -128,8 +158,21 @@ public class MainActivity extends AppCompatActivity {
         fileNameFb += "/audiofb.3gp";
         fileNameYt = Environment.getExternalStorageDirectory().getAbsolutePath();
         fileNameYt += "/audioyt.3gp";
-
         ActivityCompat.requestPermissions(this, permissions, REQUEST_RECORD_AUDIO_PERMISSION);
+
+        //setup gyro
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        gyroReader = new GyroReader();
+
+        //initiate file write
+        try {
+            gyroWriter = new FileWriter(gyroDatafile);
+            trafficWriter = new FileWriter(trafficDatafile);
+        }
+        catch (IOException e){
+            e.printStackTrace();
+        }
 
         //submit data
         FloatingActionButton fab = findViewById(R.id.fab);
@@ -140,7 +183,23 @@ public class MainActivity extends AppCompatActivity {
                 if (stopRercordingFlag) {
                     stopRercordingFlag = false;
                     onRecord(false, fileNameYt);
+                    gyroReader.stop();
+
                     //TODO - finalize recording data
+
+                    try {
+                        trafficWriter.flush();
+                        trafficWriter.close();
+                        gyroWriter.flush();
+                        gyroWriter.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    //get userID
+                    userID = findViewById(R.id.userID);
+                    userIDText = userID.getText().toString();
+
                     //upload data
                     new UploadFileAsync().execute("");
                     Snackbar.make(view, "Your contribution has been submitted. Thank you!", Snackbar.LENGTH_LONG)
@@ -172,19 +231,27 @@ public class MainActivity extends AppCompatActivity {
                 if (mStartRX == TrafficStats.UNSUPPORTED || mStartTX == TrafficStats.UNSUPPORTED) {
                     Log.d(TAG, "logging unsupported");
                 } else {
+                    Log.d(TAG, "begin recording");
                     mHandler.postDelayed(mRunnable, 1000);
                 }
 
-               //start recording
-                stopRercordingFlag = true;
-                onRecord(true, fileNameFb);
-                Log.d(TAG, "started recording");
-                //open fb 360
-                String url = "https://www.facebook.com/AMD/videos/10154844546721473/";
-                //String url = "https://www.pscp.tv/w/1dRJZXXgXEwKB";
-                Intent i = new Intent(Intent.ACTION_VIEW);
-                i.setData(Uri.parse(url));
-                startActivity(i);
+               //start recording audio and gyro
+                if (!stopRercordingFlag) {
+                    stopRercordingFlag = true;
+                    onRecord(true, fileNameFb);
+                    gyroReader.start();
+                    Log.d(TAG, "started recording");
+
+                    //open fb 360
+                    String url = "https://www.facebook.com/AMD/videos/10154844546721473/";
+                    //String url = "https://www.pscp.tv/w/1dRJZXXgXEwKB";
+                    Intent i = new Intent(Intent.ACTION_VIEW);
+                    i.setData(Uri.parse(url));
+                    startActivity(i);
+                }
+                else{
+                    Toast.makeText(v.getContext(), "Please follow the steps in the correct order", Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
@@ -207,9 +274,11 @@ public class MainActivity extends AppCompatActivity {
 
                 //stop previous recording instance
                 if (stopRercordingFlag) {
+                    gyroReader.stop();
                     onRecord(false, fileNameFb);
                     Log.d(TAG, "started recording");
                     //restart recording
+                    gyroReader.start();
                     onRecord(true, fileNameYt);
 
                     //open fb 360
@@ -248,6 +317,56 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+
+    private void writeGyroToCsv(SensorEvent event, Writer writer) throws IOException {
+        Long time = System.nanoTime();
+        String line = String.format("%d,%f,%f,%f,%f\n",time, event.values[0], event.values[1], event.values[2], event.values[3]);
+        writer.write(line);
+    }
+
+    private void writeTrafficStatsToCsv(Long rx, Long tx, Writer writer) throws IOException {
+        Long time = System.nanoTime();
+        String line = String.format("%d,%d,%d\n",time, rx, tx);
+        writer.write(line);
+    }
+
+    class GyroReader implements SensorEventListener{
+        private Sensor rotationSensor;
+
+        public GyroReader(){
+            rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        }
+
+        public void start(){
+            //request 10ms updates
+            sensorManager.registerListener(this, rotationSensor, 10000);
+        }
+
+        public void stop(){
+            sensorManager.unregisterListener(this);
+        }
+
+        public void onSensorChanged(SensorEvent event) {
+            // we received a sensor event. it is a good practice to check
+            // that we received the proper event
+            if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
+                // convert the rotation-vector to a 4x4 matrix. the matrix
+                // is interpreted by Open GL as the inverse of the
+                // rotation-vector, which is what we want.
+                Log.d(TAG, "Gyro readings "+ event.values[0] + " " + event.values[1]);
+                try {
+                    writeGyroToCsv(event, gyroWriter);
+                }
+                catch (IOException e){
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        public void onAccuracyChanged(Sensor sensor, int accuracy){
+        }
+    }
+
     private class UploadFileAsync extends AsyncTask<String, Void, String> {
 
         @Override
@@ -271,6 +390,7 @@ public class MainActivity extends AppCompatActivity {
                     try {
                         String upLoadServerUri = "http://192.168.43.4:80/crowdsource/index.php?";
 
+                        Log.d(TAG, "user id "+userIDText);
                         // open a URL connection to the Servlet
                         FileInputStream fileInputStream = new FileInputStream(
                                 sourceFile);
@@ -289,9 +409,9 @@ public class MainActivity extends AppCompatActivity {
                         conn.setRequestProperty("Content-Type",
                                 "multipart/form-data;boundary=" + boundary);
                         conn.setRequestProperty("bill", sourceFileUri);
+                        conn.setRequestProperty("userid", userIDText);
 
                         dos = new DataOutputStream(conn.getOutputStream());
-
                         dos.writeBytes(twoHyphens + boundary + lineEnd);
                         dos.writeBytes("Content-Disposition: form-data; name=\"bill\";filename=\""
                                 + sourceFileUri + "\"" + lineEnd);
