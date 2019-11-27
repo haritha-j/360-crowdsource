@@ -25,6 +25,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
+import androidx.viewpager.widget.PagerAdapter;
+import androidx.viewpager.widget.ViewPager;
 
 import android.os.Environment;
 import android.os.Handler;
@@ -32,9 +36,11 @@ import android.os.SystemClock;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -52,18 +58,41 @@ import android.media.MediaRecorder;
 import android.widget.Toast;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends FragmentActivity {
+    static final String serverURL = "http://10.17.76.28:80/crowdsource/index.php?";
+    static final String YT_URL = "https://www.facebook.com/Breitling/videos/510602576175759/UzpfSTE2Nzk5OTE4Mzg4ODU5NTE6MjU1OTk3NTI3MDg4NzU5OQ/";
+    static final String FB_URL = "https://www.facebook.com/AMD/videos/10154844546721473/";
+    static final int GYRO_SAMPLING_PERIOD_US = 100000;
+    static final int NETWORK_DATA_SAMPLING_PERIOD_MS = 1000;
+    private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
+
+    //UI fragment setup
+    /**
+     * The number of pages (wizard steps) to show in this demo.
+     */
+    private static final int NUM_PAGES = 5;
+
+    /**
+     * The pager widget, which handles animation and allows swiping horizontally to access previous
+     * and next wizard steps.
+     */
+    private ViewPager mPager;
+
+    /**
+     * The pager adapter, which provides the pages to the view pager widget.
+     */
+
+
+    
     static String TAG = "debug";
     long mStartRX = 0;
     long mStartTX = 0;
     Handler mHandler = new Handler();
     boolean stopRercordingFlag = false;
-    boolean thinkAloud = false;
+    //boolean thinkAloud = false;
     int READ_STORAGE_PERMISSION_REQUEST_CODE=0x3;
     int WRITE_STORAGE_PERMISSION_REQUEST_CODE=0x3;
 
-    private static final String LOG_TAG = "AudioRecordTest";
-    private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
     private static String fileNameFb = null;
     private static String fileNameYt = null;
     private EditText userID;
@@ -76,71 +105,18 @@ public class MainActivity extends AppCompatActivity {
     private Sensor sensor;
     GyroReader gyroReader;
 
-    //setup csv file for logging data
+    //setup csv files for logging data
     FileWriter trafficWriter;
     FileWriter gyroWriter;
     File root = Environment.getExternalStorageDirectory();
     File trafficDatafile = new File(root, "trafficData.csv");
     File gyroDatafile = new File(root, "gyroData.csv");
 
-
-    private final Runnable mRunnable = new Runnable() {
-        public void run() {
-            if (stopRercordingFlag) {
-                Log.d(TAG, "running");
-                long rxBytes = TrafficStats.getTotalRxBytes() - mStartRX;
-                Log.d(TAG, "RX " + Long.toString(rxBytes));
-                long txBytes = TrafficStats.getTotalTxBytes() - mStartTX;
-                Log.d(TAG, "TX " + Long.toString(txBytes));
-                try{
-                    writeTrafficStatsToCsv(rxBytes, txBytes, trafficWriter);
-                }
-                catch (IOException e){
-                    e.printStackTrace();
-                }
-                mHandler.postDelayed(mRunnable, 10000);
-            }
-        }
-    };
-
-    public MainActivity() {
-    }
-
-    //permission check for storage
-    public void checkPermission(Activity activity, String permission, int permissionInt) {
-        // Here, thisActivity is the current activity
-        if (ContextCompat.checkSelfPermission(activity,
-                permission)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            // Permission is not granted
-
-            // No explanation needed; request the permission
-            ActivityCompat.requestPermissions(activity,
-                    new String[]{permission},
-                    permissionInt);
-
-            // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-            // app-defined int constant. The callback method gets the
-            // result of the request.
-
-        }
-    }
-
-    //get audio permission
+    //audio permissions
     boolean permissionToRecordAccepted = false;
     String [] permissions = {Manifest.permission.RECORD_AUDIO};
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode){
-            case REQUEST_RECORD_AUDIO_PERMISSION:
-                permissionToRecordAccepted  = grantResults[0] == PackageManager.PERMISSION_GRANTED;
-                break;
-        }
-        if (!permissionToRecordAccepted ) finish();
-
+    public MainActivity() {
     }
 
     @Override
@@ -148,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        //setSupportActionBar(toolbar);
 
         //get storage permissions
         checkPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE, READ_STORAGE_PERMISSION_REQUEST_CODE);
@@ -166,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
         gyroReader = new GyroReader();
 
-        //initiate file write
+        //initiate file writers
         try {
             gyroWriter = new FileWriter(gyroDatafile);
             trafficWriter = new FileWriter(trafficDatafile);
@@ -175,60 +151,10 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        //submit data
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //stopRercordingFlag = true;
-                if (stopRercordingFlag) {
-                    stopRercordingFlag = false;
-                    onRecord(false, fileNameYt);
-                    gyroReader.stop();
-
-                    //TODO - finalize recording data
-
-                    try {
-                        trafficWriter.flush();
-                        trafficWriter.close();
-                        gyroWriter.flush();
-                        gyroWriter.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
-                    //get userID
-                    userID = findViewById(R.id.userID);
-                    userIDText = userID.getText().toString();
-
-                    //upload data
-                    new UploadFileAsync().execute(Environment.getExternalStorageDirectory().getPath()+"/audiofb.3gp", "_audiofb.3gp");
-                    new UploadFileAsync().execute(Environment.getExternalStorageDirectory().getPath()+"/audioyt.3gp", "_audioyt.3gp");
-                    new UploadFileAsync().execute(Environment.getExternalStorageDirectory().getPath()+"/trafficData.csv", "_trafficData.csv");
-                    new UploadFileAsync().execute(Environment.getExternalStorageDirectory().getPath()+"/gyroData.csv", "_gyroData.csv");
-                    Snackbar.make(view, "Your contribution has been submitted. Thank you!", Snackbar.LENGTH_LONG)
-                            .setAction("Action", null).show();
-                }
-                else{
-                    Toast.makeText(view.getContext(), "Please follow the steps in the correct order", Toast.LENGTH_SHORT).show();
-                }
-
-            }
-        });
-
-        /*
-        TextView link = (TextView) findViewById(R.id.text1);
-        String linkText = "<a href='https://www.facebook.com/AMD/videos/10154844546721473/'>View facebook 360 video</a>";
-        link.setText(Html.fromHtml(linkText));
-        link.setMovementMethod(LinkMovementMethod.getInstance());
-        */
-
         //fb button
         final Button fbButton = findViewById(R.id.fb_button);
         fbButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-
-
 
                //start recording audio and gyro
                 if (!stopRercordingFlag) {
@@ -247,7 +173,7 @@ public class MainActivity extends AppCompatActivity {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                        mHandler.postDelayed(mRunnable, 1000);
+                        mHandler.postDelayed(mRunnable, NETWORK_DATA_SAMPLING_PERIOD_MS);
                     }
 
                     onRecord(true, fileNameFb);
@@ -260,8 +186,9 @@ public class MainActivity extends AppCompatActivity {
                     Log.d(TAG, "started recording");
 
                     //open fb 360
-                    String url = "https://www.facebook.com/AMD/videos/10154844546721473/";
+                    String url = FB_URL;
                     //String url = "https://www.pscp.tv/w/1dRJZXXgXEwKB";
+                    //setContentView(R.layout.content_main);
                     Intent i = new Intent(Intent.ACTION_VIEW);
                     i.setData(Uri.parse(url));
                     startActivity(i);
@@ -273,11 +200,9 @@ public class MainActivity extends AppCompatActivity {
         });
 
         //youtube button
-        //fb button
         final Button youtubeButton = findViewById(R.id.youtube_button);
         youtubeButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-
 
                 //stop previous recording instance
                 if (stopRercordingFlag) {
@@ -311,8 +236,8 @@ public class MainActivity extends AppCompatActivity {
                         }
                         mHandler.postDelayed(mRunnable, 1000);
                     }
-                    //open fb 360
-                    String url = "https://www.facebook.com/Breitling/videos/510602576175759/UzpfSTE2Nzk5OTE4Mzg4ODU5NTE6MjU1OTk3NTI3MDg4NzU5OQ/";
+                    //open youtube
+                    String url = YT_URL;
                     //String url = "https://www.pscp.tv/w/1dRJZXXgXEwKB";
                     Intent i = new Intent(Intent.ACTION_VIEW);
                     i.setData(Uri.parse(url));
@@ -323,6 +248,57 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        //submit data
+        FloatingActionButton fab = findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //stopRercordingFlag = true;
+                if (stopRercordingFlag) {
+                    stopRercordingFlag = false;
+                    onRecord(false, fileNameYt);
+                    gyroReader.stop();
+
+                    try {
+                        trafficWriter.flush();
+                        trafficWriter.close();
+                        gyroWriter.flush();
+                        gyroWriter.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    //get userID
+                    userID = findViewById(R.id.userID);
+                    userIDText = userID.getText().toString();
+
+                    //upload data
+                    new UploadFileAsync().execute(Environment.getExternalStorageDirectory().getPath()+"/audiofb.3gp", "_audiofb.3gp");
+                    new UploadFileAsync().execute(Environment.getExternalStorageDirectory().getPath()+"/audioyt.3gp", "_audioyt.3gp");
+                    new UploadFileAsync().execute(Environment.getExternalStorageDirectory().getPath()+"/trafficData.csv", "_trafficData.csv");
+                    new UploadFileAsync().execute(Environment.getExternalStorageDirectory().getPath()+"/gyroData.csv", "_gyroData.csv");
+                    Snackbar.make(view, "Your contribution has been submitted. Thank you!", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                }
+                else{
+                    Toast.makeText(view.getContext(), "Please follow the steps in the correct order", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    //UI fragments
+    public class ScreenSlidePageFragment extends Fragment {
+
+        @Override
+        public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                                 Bundle savedInstanceState) {
+            ViewGroup rootView = (ViewGroup) inflater.inflate(
+                    R.layout.fragment_screen_slide_page, container, false);
+
+            return rootView;
+        }
     }
 
     //menu
@@ -348,7 +324,52 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    //runnable for logging network data
+    private final Runnable mRunnable = new Runnable() {
+        public void run() {
+            if (stopRercordingFlag) {
+                Log.d(TAG, "running");
+                long rxBytes = TrafficStats.getTotalRxBytes() - mStartRX;
+                Log.d(TAG, "RX " + Long.toString(rxBytes));
+                long txBytes = TrafficStats.getTotalTxBytes() - mStartTX;
+                Log.d(TAG, "TX " + Long.toString(txBytes));
+                try{
+                    writeTrafficStatsToCsv(rxBytes, txBytes, trafficWriter);
+                }
+                catch (IOException e){
+                    e.printStackTrace();
+                }
+                mHandler.postDelayed(mRunnable, 10000);
+            }
+        }
+    };
 
+    //permission check for storage
+    public void checkPermission(Activity activity, String permission, int permissionInt) {
+        // Here, thisActivity is the current activity
+        if (ContextCompat.checkSelfPermission(activity,
+                permission)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(activity,
+                    new String[]{permission},
+                    permissionInt);
+        }
+    }
+
+    //permission for audio
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode){
+            case REQUEST_RECORD_AUDIO_PERMISSION:
+                permissionToRecordAccepted  = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                break;
+        }
+        if (!permissionToRecordAccepted ) finish();
+    }
+
+    //csv logging functions
     private void writeGyroToCsv(SensorEvent event, Writer writer) throws IOException {
         Long time = System.nanoTime();
         String line = String.format("%d,%f,%f,%f,%f\n",time, event.values[0], event.values[1], event.values[2], event.values[3]);
@@ -361,6 +382,7 @@ public class MainActivity extends AppCompatActivity {
         writer.write(line);
     }
 
+    //read gyroscope data
     class GyroReader implements SensorEventListener{
         private Sensor rotationSensor;
 
@@ -370,7 +392,7 @@ public class MainActivity extends AppCompatActivity {
 
         public void start(){
             //request 10ms updates
-            sensorManager.registerListener(this, rotationSensor, 100000);
+            sensorManager.registerListener(this, rotationSensor, GYRO_SAMPLING_PERIOD_US);
         }
 
         public void stop(){
@@ -398,13 +420,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    //upload files to server
     private class UploadFileAsync extends AsyncTask<String, Void, String> {
 
         @Override
         protected String doInBackground(String... params) {
 
             try {
-
                 String sourceFileUri = params[0];
                 int serverResponseCode = 0;
                 HttpURLConnection conn = null;
@@ -420,7 +442,7 @@ public class MainActivity extends AppCompatActivity {
                 if (sourceFile.isFile()) {
 
                     try {
-                        String upLoadServerUri = "http://10.17.76.28:80/crowdsource/index.php?";
+                        String upLoadServerUri = serverURL;
 
                         Log.d(TAG, "user id "+userIDText);
                         // open a URL connection to the Servlet
@@ -440,8 +462,7 @@ public class MainActivity extends AppCompatActivity {
                                 "multipart/form-data");
                         conn.setRequestProperty("Content-Type",
                                 "multipart/form-data;boundary=" + boundary);
-                        //conn.setRequestProperty("bill", sourceFileUri);
-                        //conn.setRequestProperty("userid", userIDText);
+
                         Log.d(TAG, "source file uri "+sourceFileUri);
                         dos = new DataOutputStream(conn.getOutputStream());
                         dos.writeBytes(twoHyphens + boundary + lineEnd);
@@ -485,12 +506,6 @@ public class MainActivity extends AppCompatActivity {
                         if (serverResponseCode == 200) {
                             Log.d(TAG, "send successful");
 
-                            // messageText.setText(msg);
-                            //Toast.makeText(ctx, "File Upload Complete.",
-                            //      Toast.LENGTH_SHORT).show();
-
-                            // recursiveDelete(mDirectory1);
-
                         }
 
                         // close the streams //
@@ -519,7 +534,6 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(String result) {
-
         }
 
         @Override
@@ -531,7 +545,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    //audio recording methods
+    //audio recording
     private void onRecord(boolean start, String filename) {
         if (start) {
             startRecording(filename);
@@ -550,7 +564,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             recorder.prepare();
         } catch (IOException e) {
-            Log.e(LOG_TAG, "prepare() failed");
+            Log.e(TAG, "prepare() failed");
         }
 
         recorder.start();
