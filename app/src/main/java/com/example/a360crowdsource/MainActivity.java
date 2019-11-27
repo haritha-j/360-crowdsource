@@ -27,6 +27,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentStatePagerAdapter;
 import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
@@ -71,19 +73,17 @@ public class MainActivity extends FragmentActivity {
      * The number of pages (wizard steps) to show in this demo.
      */
     private static final int NUM_PAGES = 5;
-
     /**
      * The pager widget, which handles animation and allows swiping horizontally to access previous
      * and next wizard steps.
      */
     private ViewPager mPager;
-
     /**
      * The pager adapter, which provides the pages to the view pager widget.
      */
+    private PagerAdapter pagerAdapter;
 
 
-    
     static String TAG = "debug";
     long mStartRX = 0;
     long mStartTX = 0;
@@ -122,8 +122,17 @@ public class MainActivity extends FragmentActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        Toolbar toolbar = findViewById(R.id.toolbar);
+
+        //ui
+        setContentView(R.layout.activity_screen_slide);
+        // Instantiate a ViewPager and a PagerAdapter.
+        mPager = (ViewPager) findViewById(R.id.pager);
+        pagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager());
+        mPager.setAdapter(pagerAdapter);
+
+
+        //setContentView(R.layout.activity_main);
+        //Toolbar toolbar = findViewById(R.id.toolbar);
         //setSupportActionBar(toolbar);
 
         //get storage permissions
@@ -150,7 +159,7 @@ public class MainActivity extends FragmentActivity {
         catch (IOException e){
             e.printStackTrace();
         }
-
+/*
         //fb button
         final Button fbButton = findViewById(R.id.fb_button);
         fbButton.setOnClickListener(new View.OnClickListener() {
@@ -286,10 +295,12 @@ public class MainActivity extends FragmentActivity {
                 }
             }
         });
+
+ */
     }
 
     //UI fragments
-    public class ScreenSlidePageFragment extends Fragment {
+    public static class ScreenSlidePageFragment extends Fragment {
 
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -298,6 +309,38 @@ public class MainActivity extends FragmentActivity {
                     R.layout.fragment_screen_slide_page, container, false);
 
             return rootView;
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (mPager.getCurrentItem() == 0) {
+            // If the user is currently looking at the first step, allow the system to handle the
+            // Back button. This calls finish() on this activity and pops the back stack.
+            super.onBackPressed();
+        } else {
+            // Otherwise, select the previous step.
+            mPager.setCurrentItem(mPager.getCurrentItem() - 1);
+        }
+    }
+
+    /**
+     * A simple pager adapter that represents 5 ScreenSlidePageFragment objects, in
+     * sequence.
+     */
+    private class ScreenSlidePagerAdapter extends FragmentStatePagerAdapter {
+        public ScreenSlidePagerAdapter(FragmentManager fm) {
+            super(fm);
+        }
+
+        @Override
+        public Fragment getItem(int position) {
+            return new ScreenSlidePageFragment();
+        }
+
+        @Override
+        public int getCount() {
+            return NUM_PAGES;
         }
     }
 
