@@ -1,0 +1,25 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/content"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content" >
+<androidx.appcompat.widget.LinearLayoutCompat
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    >
+
+    <TextView style="?android:textAppearanceMedium"
+        android:padding="16dp"
+        android:lineSpacingMultiplier="1.2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Click the Youtube video link to begin." />
+    <Button
+        android:id="@+id/youtube_button"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:text="youtube 360" />
+
+</androidx.appcompat.widget.LinearLayoutCompat>
+
+</ScrollView>

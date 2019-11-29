@@ -1,0 +1,35 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/content"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+<androidx.appcompat.widget.LinearLayoutCompat
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    >
+    <TextView
+        android:id="@+id/idLabelComments"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Enter your comments:"
+        />
+
+    <EditText
+        android:id="@+id/response1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/idLabelComments">
+
+        <requestFocus />
+
+    </EditText>
+
+    <Button
+        android:id="@+id/submit_button"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:text="Submit" />
+</androidx.appcompat.widget.LinearLayoutCompat>
+
+</ScrollView>

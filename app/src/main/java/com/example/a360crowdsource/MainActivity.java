@@ -12,17 +12,10 @@ import android.hardware.SensorManager;
 import android.net.TrafficStats;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
-
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
@@ -35,8 +28,6 @@ import androidx.viewpager.widget.ViewPager;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.SystemClock;
-import android.text.Html;
-import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -45,7 +36,6 @@ import android.view.MenuItem;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -59,9 +49,12 @@ import java.net.URL;
 import android.media.MediaRecorder;
 import android.widget.Toast;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
+
 
 public class MainActivity extends FragmentActivity {
-    static final String serverURL = "http://10.17.76.28:80/crowdsource/index.php?";
+    static final String serverURL = "http://192.168.43.4/crowdsource/index.php?";
     static final String YT_URL = "https://www.facebook.com/Breitling/videos/510602576175759/UzpfSTE2Nzk5OTE4Mzg4ODU5NTE6MjU1OTk3NTI3MDg4NzU5OQ/";
     static final String FB_URL = "https://www.facebook.com/AMD/videos/10154844546721473/";
     static final int GYRO_SAMPLING_PERIOD_US = 100000;
@@ -93,10 +86,10 @@ public class MainActivity extends FragmentActivity {
     int READ_STORAGE_PERMISSION_REQUEST_CODE=0x3;
     int WRITE_STORAGE_PERMISSION_REQUEST_CODE=0x3;
 
-    private static String fileNameFb = null;
-    private static String fileNameYt = null;
-    private EditText userID;
-    private String userIDText;
+    public static String fileNameFb = null;
+    public static String fileNameYt = null;
+    public EditText userID;
+    public String userIDText;
 
     //private RecordButton recordButton = null;
     private MediaRecorder recorder = null;
@@ -127,7 +120,7 @@ public class MainActivity extends FragmentActivity {
         setContentView(R.layout.activity_screen_slide);
         // Instantiate a ViewPager and a PagerAdapter.
         mPager = (ViewPager) findViewById(R.id.pager);
-        pagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager());
+        pagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager(), stopRercordingFlag, this);
         mPager.setAdapter(pagerAdapter);
 
 
@@ -159,105 +152,9 @@ public class MainActivity extends FragmentActivity {
         catch (IOException e){
             e.printStackTrace();
         }
+
+
 /*
-        //fb button
-        final Button fbButton = findViewById(R.id.fb_button);
-        fbButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-
-               //start recording audio and gyro
-                if (!stopRercordingFlag) {
-                    stopRercordingFlag = true;
-
-                    //log rx and tx data
-                    mStartRX = TrafficStats.getTotalRxBytes();
-                    mStartTX = TrafficStats.getTotalTxBytes();
-
-                    if (mStartRX == TrafficStats.UNSUPPORTED || mStartTX == TrafficStats.UNSUPPORTED) {
-                        Log.d(TAG, "logging unsupported");
-                    } else {
-                        Log.d(TAG, "begin recording");
-                        try {
-                            trafficWriter.write("facebook\n");
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        mHandler.postDelayed(mRunnable, NETWORK_DATA_SAMPLING_PERIOD_MS);
-                    }
-
-                    onRecord(true, fileNameFb);
-                    try {
-                        gyroWriter.write("facebook\n");
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    gyroReader.start();
-                    Log.d(TAG, "started recording");
-
-                    //open fb 360
-                    String url = FB_URL;
-                    //String url = "https://www.pscp.tv/w/1dRJZXXgXEwKB";
-                    //setContentView(R.layout.content_main);
-                    Intent i = new Intent(Intent.ACTION_VIEW);
-                    i.setData(Uri.parse(url));
-                    startActivity(i);
-                }
-                else{
-                    Toast.makeText(v.getContext(), "Please follow the steps in the correct order", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-
-        //youtube button
-        final Button youtubeButton = findViewById(R.id.youtube_button);
-        youtubeButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-
-                //stop previous recording instance
-                if (stopRercordingFlag) {
-                    stopRercordingFlag = false;
-                    gyroReader.stop();
-                    onRecord(false, fileNameFb);
-                    Log.d(TAG, "stopped recording");
-                    SystemClock.sleep(500);
-                    //restart recording
-                    stopRercordingFlag = true;
-                    try {
-                        gyroWriter.write("youtube\n");
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    gyroReader.start();
-                    onRecord(true, fileNameYt);
-                    //log rx and tx data
-
-                    //TODO - finalize recording data
-                    mStartRX = TrafficStats.getTotalRxBytes();
-                    mStartTX = TrafficStats.getTotalTxBytes();
-
-                    if (mStartRX == TrafficStats.UNSUPPORTED || mStartTX == TrafficStats.UNSUPPORTED) {
-                        Log.d(TAG, "logging unsupported");
-                    } else {
-                        try {
-                            trafficWriter.write("youtube\n");
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        mHandler.postDelayed(mRunnable, 1000);
-                    }
-                    //open youtube
-                    String url = YT_URL;
-                    //String url = "https://www.pscp.tv/w/1dRJZXXgXEwKB";
-                    Intent i = new Intent(Intent.ACTION_VIEW);
-                    i.setData(Uri.parse(url));
-                    startActivity(i);
-                }
-                else{
-                    Toast.makeText(v.getContext(), "Please follow the steps in the correct order", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-
         //submit data
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -295,22 +192,11 @@ public class MainActivity extends FragmentActivity {
                 }
             }
         });
+*/
 
- */
     }
 
-    //UI fragments
-    public static class ScreenSlidePageFragment extends Fragment {
 
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                                 Bundle savedInstanceState) {
-            ViewGroup rootView = (ViewGroup) inflater.inflate(
-                    R.layout.fragment_screen_slide_page, container, false);
-
-            return rootView;
-        }
-    }
 
     @Override
     public void onBackPressed() {
@@ -329,13 +215,17 @@ public class MainActivity extends FragmentActivity {
      * sequence.
      */
     private class ScreenSlidePagerAdapter extends FragmentStatePagerAdapter {
-        public ScreenSlidePagerAdapter(FragmentManager fm) {
+        boolean stopRecordingFlag;
+        MainActivity main;
+        public ScreenSlidePagerAdapter(FragmentManager fm, boolean stopRecordingflag, MainActivity main) {
             super(fm);
+            this.stopRecordingFlag = stopRecordingflag;
+            this.main = main;
         }
 
         @Override
         public Fragment getItem(int position) {
-            return new ScreenSlidePageFragment();
+            return new ScreenSlidePageFragment(position, main);
         }
 
         @Override
@@ -368,7 +258,7 @@ public class MainActivity extends FragmentActivity {
     }
 
     //runnable for logging network data
-    private final Runnable mRunnable = new Runnable() {
+    public final Runnable mRunnable = new Runnable() {
         public void run() {
             if (stopRercordingFlag) {
                 Log.d(TAG, "running");
@@ -463,133 +353,9 @@ public class MainActivity extends FragmentActivity {
         }
     }
 
-    //upload files to server
-    private class UploadFileAsync extends AsyncTask<String, Void, String> {
-
-        @Override
-        protected String doInBackground(String... params) {
-
-            try {
-                String sourceFileUri = params[0];
-                int serverResponseCode = 0;
-                HttpURLConnection conn = null;
-                DataOutputStream dos = null;
-                String lineEnd = "\r\n";
-                String twoHyphens = "--";
-                String boundary = "*****";
-                int bytesRead, bytesAvailable, bufferSize;
-                byte[] buffer;
-                int maxBufferSize = 1 * 1024 * 1024;
-                File sourceFile = new File(sourceFileUri);
-                Log.d(TAG, "begin send");
-                if (sourceFile.isFile()) {
-
-                    try {
-                        String upLoadServerUri = serverURL;
-
-                        Log.d(TAG, "user id "+userIDText);
-                        // open a URL connection to the Servlet
-                        FileInputStream fileInputStream = new FileInputStream(
-                                sourceFile);
-                        URL url = new URL(upLoadServerUri);
-                        Log.d(TAG, "opened file");
-
-                        // Open a HTTP connection to the URL
-                        conn = (HttpURLConnection) url.openConnection();
-                        conn.setDoInput(true); // Allow Inputs
-                        conn.setDoOutput(true); // Allow Outputs
-                        conn.setUseCaches(false); // Don't use a Cached Copy
-                        conn.setRequestMethod("POST");
-                        conn.setRequestProperty("Connection", "Keep-Alive");
-                        conn.setRequestProperty("ENCTYPE",
-                                "multipart/form-data");
-                        conn.setRequestProperty("Content-Type",
-                                "multipart/form-data;boundary=" + boundary);
-
-                        Log.d(TAG, "source file uri "+sourceFileUri);
-                        dos = new DataOutputStream(conn.getOutputStream());
-                        dos.writeBytes(twoHyphens + boundary + lineEnd);
-                        dos.writeBytes("Content-Disposition: form-data; name=\"abd\";filename=\""
-                                + userIDText+ params[1] + "\"" + lineEnd);
-
-                        dos.writeBytes(lineEnd);
-
-                        // create a buffer of maximum size
-                        bytesAvailable = fileInputStream.available();
-
-                        bufferSize = Math.min(bytesAvailable, maxBufferSize);
-                        buffer = new byte[bufferSize];
-
-                        // read file and write it into form...
-                        bytesRead = fileInputStream.read(buffer, 0, bufferSize);
-
-                        while (bytesRead > 0) {
-
-                            dos.write(buffer, 0, bufferSize);
-                            bytesAvailable = fileInputStream.available();
-                            bufferSize = Math
-                                    .min(bytesAvailable, maxBufferSize);
-                            bytesRead = fileInputStream.read(buffer, 0,
-                                    bufferSize);
-
-                        }
-
-                        // send multipart form data necesssary after file
-                        // data...
-                        dos.writeBytes(lineEnd);
-                        dos.writeBytes(twoHyphens + boundary + twoHyphens
-                                + lineEnd);
-
-                        // Responses from the server (code and message)
-                        serverResponseCode = conn.getResponseCode();
-                        String serverResponseMessage = conn
-                                .getResponseMessage();
-                        Log.d(TAG, "sent file");
-
-                        if (serverResponseCode == 200) {
-                            Log.d(TAG, "send successful");
-
-                        }
-
-                        // close the streams //
-                        fileInputStream.close();
-                        dos.flush();
-                        dos.close();
-
-                    } catch (Exception e) {
-
-                        // dialog.dismiss();
-                        e.printStackTrace();
-
-                    }
-                    // dialog.dismiss();
-
-                } // End else block
-
-
-            } catch (Exception ex) {
-                // dialog.dismiss();
-
-                ex.printStackTrace();
-            }
-            return "Executed";
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-        }
-
-        @Override
-        protected void onPreExecute() {
-        }
-
-        @Override
-        protected void onProgressUpdate(Void... values) {
-        }
-    }
 
     //audio recording
-    private void onRecord(boolean start, String filename) {
+    public void onRecord(boolean start, String filename) {
         if (start) {
             startRecording(filename);
         } else {
@@ -597,7 +363,7 @@ public class MainActivity extends FragmentActivity {
         }
     }
 
-    private void startRecording(String fileName) {
+    public void startRecording(String fileName) {
         recorder = new MediaRecorder();
         recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
@@ -613,11 +379,14 @@ public class MainActivity extends FragmentActivity {
         recorder.start();
     }
 
-    private void stopRecording() {
+    public void stopRecording() {
         recorder.stop();
         recorder.release();
         recorder = null;
     }
+
+    //UI fragments
+
 }
 
 
