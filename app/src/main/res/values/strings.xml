@@ -1,4 +1,112 @@
 <resources>
     <string name="app_name">360CrowdSource</string>
     <string name="action_settings">Settings</string>
+
+    <string name="agetype1">18 - 24 Years Old</string>
+    <string name="agetype2">25 - 34 Years Old</string>
+    <string name="agetype3">35 - 44 Years Old</string>
+    <string name="agetype4">45 - 54 Years Old</string>
+    <string name="agetype5">55 - 64 Years Old</string>
+    <string name="agetype6">Over 65 Years Old</string>
+    <string name="agetype7">Prefer not to say</string>
+
+    <string name="gendertype1">Male</string>
+    <string name="gendertype2">Female </string>
+    <string name="gendertype3">Prefer not to say</string>
+
+    <string name="experiencetype1">None at all</string>
+    <string name="experiencetype2">Almost none</string>
+    <string name="experiencetype3">Somewhat</string>
+    <string name="experiencetype4">Almost a lot</string>
+    <string name="experiencetype5">A lot </string>
+    <string name="experiencetype6">Prefer not to say</string>
+
+    <string name="devicetype1">Using a smartphone only</string>
+    <string name="devicetype2">Using a smartphone as a display + HMD (i.e. Google Daydream, Samsung GearVR, Google Cardboard)</string>
+    <string name="devicetype3">Using specific VR HMD (i.e. Facebook Oculus, HTC Vive, Sony PlayStation VR)</string>
+    <string name="devicetype4">Using Microsoft Hololens</string>
+    <string name="devicetype5">Prefer not to say</string>
+
+    <string name="applicationtype1">2D/3D video streaming using Youtube/Facebook/Periscope</string>
+    <string name="applicationtype2">2D/3D video streaming using any other application fro AppStore/PlayStore</string>
+    <string name="applicationtype3">VR Gaming app from AppStore/PlayStore</string>
+    <string name="applicationtype4">VR Gaming app from a device-specific website (Facebook Oculus, HTC Vive)</string>
+    <string name="applicationtype5">Holograms</string>
+    <string name="applicationtype6">Prefer not to say</string>
+
+    <string name="frequencytype1">Not used recently</string>
+    <string name="frequencytype2">1 - 3 times</string>
+    <string name="frequencytype3">4 - 7 times</string>
+    <string name="frequencytype4">7 - 10 times</string>
+    <string name="frequencytype5">More than 10 times</string>
+    <string name="frequencytype6">Prefer not to say</string>
+
+    <string name="educationtype1">Below or up to A-level</string>
+    <string name="educationtype2">Up to Higher National Certificate</string>
+    <string name="educationtype3">Up to Higher National Diploma</string>
+    <string name="educationtype4">Up to a Bachelor’s degree</string>
+    <string name="educationtype5">Up to a Master’s degree</string>
+    <string name="educationtype6">Up to Doctoral degree</string>
+
+    <string-array name="agetypelist">
+        <item>@string/agetype1</item>
+        <item>@string/agetype2</item>
+        <item>@string/agetype3</item>
+        <item>@string/agetype4</item>
+        <item>@string/agetype5</item>
+        <item>@string/agetype6</item>
+        <item>@string/agetype7</item>
+    </string-array>
+
+    <string-array name="gendertypelist">
+        <item>@string/gendertype1</item>
+        <item>@string/gendertype2</item>
+        <item>@string/gendertype3</item>
+    </string-array>
+
+    <string-array name="experiencetypelist">
+        <item>@string/experiencetype1</item>
+        <item>@string/experiencetype2</item>
+        <item>@string/experiencetype3</item>
+        <item>@string/experiencetype4</item>
+        <item>@string/experiencetype5</item>
+        <item>@string/experiencetype6</item>
+    </string-array>
+
+    <string-array name="devicetypelist">
+        <item>@string/devicetype1</item>
+        <item>@string/devicetype2</item>
+        <item>@string/devicetype3</item>
+        <item>@string/devicetype4</item>
+        <item>@string/devicetype5</item>
+    </string-array>
+
+    <string-array name="applicationtypelist">
+        <item>@string/applicationtype1</item>
+        <item>@string/applicationtype2</item>
+        <item>@string/applicationtype3</item>
+        <item>@string/applicationtype4</item>
+        <item>@string/applicationtype5</item>
+        <item>@string/applicationtype6</item>
+    </string-array>
+
+    <string-array name="frequencytypelist">
+        <item>@string/frequencytype1</item>
+        <item>@string/frequencytype2</item>
+        <item>@string/frequencytype3</item>
+        <item>@string/frequencytype4</item>
+        <item>@string/frequencytype5</item>
+        <item>@string/frequencytype6</item>
+    </string-array>
+
+    <string-array name="educationtypelist">
+        <item>@string/educationtype1</item>
+        <item>@string/educationtype2</item>
+        <item>@string/educationtype3</item>
+        <item>@string/educationtype4</item>
+        <item>@string/educationtype5</item>
+        <item>@string/educationtype6</item>
+    </string-array>
+
+
 </resources>

@@ -55,7 +55,7 @@ import com.google.android.material.snackbar.Snackbar;
 
 public class MainActivity extends FragmentActivity {
     static final String serverURL = "http://192.168.43.4/crowdsource/index.php?";
-    static final String YT_URL = "https://www.facebook.com/Breitling/videos/510602576175759/UzpfSTE2Nzk5OTE4Mzg4ODU5NTE6MjU1OTk3NTI3MDg4NzU5OQ/";
+    static final String YT_URL = "https://www.youtube.com/watch?v=-xNN-bJQ4vI";
     static final String FB_URL = "https://www.facebook.com/AMD/videos/10154844546721473/";
     static final int GYRO_SAMPLING_PERIOD_US = 100000;
     static final int NETWORK_DATA_SAMPLING_PERIOD_MS = 1000;
@@ -65,7 +65,7 @@ public class MainActivity extends FragmentActivity {
     /**
      * The number of pages (wizard steps) to show in this demo.
      */
-    private static final int NUM_PAGES = 5;
+    private static final int NUM_PAGES = 4;
     /**
      * The pager widget, which handles animation and allows swiping horizontally to access previous
      * and next wizard steps.

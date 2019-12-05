@@ -21,10 +21,93 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintTop_toBottomOf="@id/idLabel">
-
         <requestFocus />
-
     </EditText>
+
+    <TextView style="?android:textAppearanceMedium"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="1. Which age category below includes your age" />
+    <Spinner
+        android:id="@+id/SpinnerAgeType"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:entries="@array/agetypelist">
+    </Spinner>
+
+    <TextView style="?android:textAppearanceMedium"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="2. What is your gender?" />
+    <Spinner
+        android:id="@+id/SpinnerGenderType"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:entries="@array/gendertypelist">
+    </Spinner>
+
+    <TextView style="?android:textAppearanceMedium"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="3. Do you have any prior experiences with 360/VR streaming?" />
+    <Spinner
+        android:id="@+id/SpinnerExperienceType"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:entries="@array/experiencetypelist">
+    </Spinner>
+
+    <TextView style="?android:textAppearanceMedium"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="4. If you have any experience in (3), what was the device you used? Check all that apply" />
+    <Button
+        android:id="@+id/device_button"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:text="Select Devices" />
+
+
+    <TextView style="?android:textAppearanceMedium"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="5. If you have any experience in (3), what was the application you did run? Check all that apply." />
+    <Button
+        android:id="@+id/Application_button"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:text="Select Applications" />
+
+    <TextView style="?android:textAppearanceMedium"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="6. Do you own a VR device If yes what is the device name?" />
+    <CheckBox
+        android:id="@+id/CheckBoxResponse"
+        android:layout_height="wrap_content"
+        android:text="I own a VR device"
+        android:layout_width="fill_parent">
+    </CheckBox>
+    <EditText
+        android:id="@+id/deviceName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <requestFocus />
+    </EditText>
+
+    <TextView style="?android:textAppearanceMedium"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="7. (If “Yes” to 6.a) How often do you use your VR HMDs" />
+
+    <Spinner
+        android:id="@+id/SpinnerType"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:entries="@array/frequencytypelist">
+    </Spinner>
+
+
 </androidx.appcompat.widget.LinearLayoutCompat>
 
 </ScrollView>

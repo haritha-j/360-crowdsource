@@ -1,5 +1,6 @@
 package com.example.a360crowdsource;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.TrafficStats;
 import android.net.Uri;
@@ -15,6 +16,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.snackbar.Snackbar;
@@ -29,6 +31,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 
 import static com.example.a360crowdsource.MainActivity.TAG;
 
@@ -36,6 +39,12 @@ public class ScreenSlidePageFragment extends Fragment {
     int position;
     MainActivity main;
     public EditText response1;
+    Button mDevice;
+    //TextView mItemSelected;
+    String[] listDevices;
+    boolean[] checkedDevices;
+    ArrayList<Integer> mUserDevices = new ArrayList<>();
+
 
     public ScreenSlidePageFragment(int position, MainActivity main){
         this.position = position;
@@ -48,12 +57,79 @@ public class ScreenSlidePageFragment extends Fragment {
                              Bundle savedInstanceState) {
         final ViewGroup rootView;
 
+        //intro screen
         if (position ==0){
             rootView = (ViewGroup) inflater.inflate(
                     R.layout.fragment_screen_slide_intro, container, false);
             main.userID = rootView.findViewById(R.id.userID);
 
+            //select device - multiple choice
+            mDevice = (Button) rootView.findViewById(R.id.device_button);
+            //mItemSelected = (TextView) findViewById(R.id.tvItemSelected);
+
+            listDevices = getResources().getStringArray(R.array.devicetypelist);
+            checkedDevices = new boolean[listDevices.length];
+
+            mDevice.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    AlertDialog.Builder mBuilder = new AlertDialog.Builder(getContext());
+                    mBuilder.setTitle("select devices");
+                    mBuilder.setMultiChoiceItems(listDevices, checkedDevices, new DialogInterface.OnMultiChoiceClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int position, boolean isChecked) {
+//                        if (isChecked) {
+//                            if (!mUserItems.contains(position)) {
+//                                mUserItems.add(position);
+//                            }
+//                        } else if (mUserItems.contains(position)) {
+//                            mUserItems.remove(position);
+//                        }
+                            if(isChecked){
+                                mUserDevices.add(position);
+                            }else{
+                                mUserDevices.remove((Integer.valueOf(position)));
+                            }
+                        }
+                    });
+
+                    mBuilder.setCancelable(false);
+                    mBuilder.setPositiveButton("Submit", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int which) {
+                            String item = "";
+                            for (int i = 0; i < mUserDevices.size(); i++) {
+                                item = item + listDevices[mUserDevices.get(i)];
+                                if (i != mUserDevices.size() - 1) {
+                                    item = item + ", ";
+                                }
+                            }
+                            //mItemSelected.setText(item);
+                        }
+                    });
+
+
+                    mBuilder.setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int which) {
+                            for (int i = 0; i < checkedDevices.length; i++) {
+                                checkedDevices[i] = false;
+                                mUserDevices.clear();
+                                //mItemSelected.setText("");
+                            }
+                        }
+                    });
+
+                    AlertDialog mDialog = mBuilder.create();
+                    mDialog.show();
+                }
+            });
+
+
+            ////select application - multiple choice
+
         }
+        //facebook screen
         else if (position == 1) {
             rootView = (ViewGroup) inflater.inflate(
                     R.layout.fragment_screen_slide_fb, container, false);
@@ -107,6 +183,8 @@ public class ScreenSlidePageFragment extends Fragment {
             });
 
         }
+
+        //youtube screen
         else if (position ==2){
             rootView = (ViewGroup) inflater.inflate(
                     R.layout.fragment_screen_slide_yt, container, false);
@@ -161,8 +239,8 @@ public class ScreenSlidePageFragment extends Fragment {
                 }
             });
         }
+        //final screen for submitting data
         else {
-            //submit data
             rootView = (ViewGroup) inflater.inflate(
                     R.layout.fragment_screen_slide_submit, container, false);
             final Button fab = rootView.findViewById(R.id.submit_button);
@@ -195,7 +273,7 @@ public class ScreenSlidePageFragment extends Fragment {
                         new UploadFileAsync().execute(Environment.getExternalStorageDirectory().getPath()+"/audioyt.3gp", "_audioyt.3gp");
                         new UploadFileAsync().execute(Environment.getExternalStorageDirectory().getPath()+"/trafficData.csv", "_trafficData.csv");
                         new UploadFileAsync().execute(Environment.getExternalStorageDirectory().getPath()+"/gyroData.csv", "_gyroData.csv");
-                        new SendData().execute(main.serverURL, response1Text);
+                        //new SendData().execute(main.serverURL, response1Text);
                         Snackbar.make(view, "Your contribution has been submitted. Thank you!", Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
                     }
@@ -332,7 +410,7 @@ public class ScreenSlidePageFragment extends Fragment {
         protected void onProgressUpdate(Void... values) {
         }
     }
-
+/*
     //send additional user data
     public class SendData extends AsyncTask<String, String, String> {
 
@@ -344,6 +422,7 @@ public class ScreenSlidePageFragment extends Fragment {
         protected void onPreExecute() {
             super.onPreExecute();
         }
+
 
         @Override
         protected String doInBackground(String... params) {
@@ -367,5 +446,5 @@ public class ScreenSlidePageFragment extends Fragment {
                 System.out.println(e.getMessage());
             }
         }
-    }
+    }*/
 }
