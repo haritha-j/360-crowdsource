@@ -49,14 +49,21 @@ import java.net.URL;
 import android.media.MediaRecorder;
 import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
 
 public class MainActivity extends FragmentActivity {
-    static final String serverURL = "http://192.168.43.4/crowdsource/index.php?";
-    static final String YT_URL = "https://www.youtube.com/watch?v=-xNN-bJQ4vI";
-    static final String FB_URL = "https://www.facebook.com/AMD/videos/10154844546721473/";
+    static final String serverURL = "http://10.17.78.88/crowdsource";
+    //the below urls are replaced by the ones provided by the server
+    static  String YT_URL = "https://www.youtube.com/watch?v=-xNN-bJQ4vI";
+    static  String FB_URL = "https://www.facebook.com/AMD/videos/10154844546721473/";
     static final int GYRO_SAMPLING_PERIOD_US = 100000;
     static final int NETWORK_DATA_SAMPLING_PERIOD_MS = 1000;
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
@@ -153,7 +160,48 @@ public class MainActivity extends FragmentActivity {
             e.printStackTrace();
         }
 
+        //get the latest video URLs from the server
+        // Instantiate the RequestQueue.
+        RequestQueue queue = Volley.newRequestQueue(this);
+        String url_fb =serverURL + "/url.php?app=fb";
+        String url_yt =serverURL + "/url.php?app=yt";
 
+
+        // Request the url for the fb video
+        StringRequest stringRequest_fb = new StringRequest(Request.Method.GET, url_fb,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        // Display the first 500 characters of the response string.
+                        Log.d(TAG,"Response is: "+ response);
+                        FB_URL = response;
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d(TAG,"That didn't work!");
+            }
+        });
+
+        //request the url for the youtube video
+        StringRequest stringRequest_yt = new StringRequest(Request.Method.GET, url_yt,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        // Display the first 500 characters of the response string.
+                        Log.d(TAG,"Response is: "+ response);
+                        YT_URL = response;
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d(TAG,"That didn't work!");
+            }
+        });
+
+// Add the request to the RequestQueue.
+        queue.add(stringRequest_yt);
+        queue.add(stringRequest_fb);
 /*
         //submit data
         FloatingActionButton fab = findViewById(R.id.fab);

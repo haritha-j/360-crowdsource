@@ -44,6 +44,11 @@ public class ScreenSlidePageFragment extends Fragment {
     String[] listDevices;
     boolean[] checkedDevices;
     ArrayList<Integer> mUserDevices = new ArrayList<>();
+    Button mApplication;
+    //TextView mItemSelected;
+    String[] listApps;
+    boolean[] checkedApps;
+    ArrayList<Integer> mUserApps = new ArrayList<>();
 
 
     public ScreenSlidePageFragment(int position, MainActivity main){
@@ -62,6 +67,7 @@ public class ScreenSlidePageFragment extends Fragment {
             rootView = (ViewGroup) inflater.inflate(
                     R.layout.fragment_screen_slide_intro, container, false);
             main.userID = rootView.findViewById(R.id.userID);
+
 
             //select device - multiple choice
             mDevice = (Button) rootView.findViewById(R.id.device_button);
@@ -109,7 +115,7 @@ public class ScreenSlidePageFragment extends Fragment {
                     });
 
 
-                    mBuilder.setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
+                    mBuilder.setNeutralButton("Clear", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int which) {
                             for (int i = 0; i < checkedDevices.length; i++) {
@@ -127,6 +133,66 @@ public class ScreenSlidePageFragment extends Fragment {
 
 
             ////select application - multiple choice
+            mApplication = (Button) rootView.findViewById(R.id.application_button);
+            //mItemSelected = (TextView) findViewById(R.id.tvItemSelected);
+
+            listApps = getResources().getStringArray(R.array.applicationtypelist);
+            checkedApps = new boolean[listApps.length];
+
+            mApplication.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    AlertDialog.Builder mBuilder = new AlertDialog.Builder(getContext());
+                    mBuilder.setTitle("select devices");
+                    mBuilder.setMultiChoiceItems(listApps, checkedApps, new DialogInterface.OnMultiChoiceClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int position, boolean isChecked) {
+//                        if (isChecked) {
+//                            if (!mUserItems.contains(position)) {
+//                                mUserItems.add(position);
+//                            }
+//                        } else if (mUserItems.contains(position)) {
+//                            mUserItems.remove(position);
+//                        }
+                            if(isChecked){
+                                mUserApps.add(position);
+                            }else{
+                                mUserApps.remove((Integer.valueOf(position)));
+                            }
+                        }
+                    });
+
+                    mBuilder.setCancelable(false);
+                    mBuilder.setPositiveButton("Submit", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int which) {
+                            String item = "";
+                            for (int i = 0; i < mUserApps.size(); i++) {
+                                item = item + listApps[mUserApps.get(i)];
+                                if (i != mUserApps.size() - 1) {
+                                    item = item + ", ";
+                                }
+                            }
+                            //mItemSelected.setText(item);
+                        }
+                    });
+
+
+                    mBuilder.setNeutralButton("Clear", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int which) {
+                            for (int i = 0; i < checkedApps.length; i++) {
+                                checkedApps[i] = false;
+                                mUserApps.clear();
+                                //mItemSelected.setText("");
+                            }
+                        }
+                    });
+
+                    AlertDialog mDialog = mBuilder.create();
+                    mDialog.show();
+                }
+            });
 
         }
         //facebook screen

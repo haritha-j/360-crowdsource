@@ -73,7 +73,7 @@
         android:layout_height="wrap_content"
         android:text="5. If you have any experience in (3), what was the application you did run? Check all that apply." />
     <Button
-        android:id="@+id/Application_button"
+        android:id="@+id/application_button"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
         android:text="Select Applications" />
